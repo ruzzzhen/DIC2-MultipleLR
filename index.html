@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multiple Linear Regression Explorer</title>
+  <meta name="description" content="CRISP-DM multiple linear regression explorer: 5 feature selection methods, OLS inference, live predictor and custom CSV datasets.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container">
+      <div>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <span><i class="fa-solid fa-house"></i> Home</span><span>›</span>
+          <span>Regression Analysis</span><span>›</span>
+          <strong id="crumb-title">Feature Progression</strong>
+        </nav>
+        <div class="title-row">
+          <h1><i class="fa-solid fa-chart-line"></i><span id="page-title">Multiple Linear Regression Explorer</span></h1>
+          <span class="pill-dark">CRISP-DM</span>
+        </div>
+        <div class="problem-select">
+          <label for="problem-select"><i class="fa-solid fa-layer-group"></i> Problem</label>
+          <select id="problem-select" aria-label="Select problem"></select>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a class="style-ref" id="style-ref" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Style Ref: StatsUnlock</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Custom dataset (bonus +2) -->
+    <section class="card custom-panel" aria-labelledby="custom-title">
+      <div class="card-head">
+        <div>
+          <h2 id="custom-title"><i class="fa-solid fa-file-csv"></i>Custom Dataset</h2>
+          <p>Paste any public CSV URL (CORS-enabled, e.g. raw.githubusercontent.com). Numeric and categorical columns are detected automatically; categorical columns are one-hot encoded (drop first).</p>
+        </div>
+      </div>
+      <form id="custom-form" class="custom-row" autocomplete="off">
+        <input type="url" id="custom-url" placeholder="https://raw.githubusercontent.com/.../data.csv" aria-label="CSV URL" required>
+        <button class="btn btn-primary" id="custom-load" type="submit"><i class="fa-solid fa-cloud-arrow-down"></i> Load Dataset</button>
+      </form>
+      <div class="examples" id="examples"><span>Try:</span></div>
+      <div class="target-row hidden" id="target-row">
+        <label for="target-select"><i class="fa-solid fa-bullseye"></i> Target column (y)</label>
+        <select id="target-select"></select>
+        <span class="col-summary" id="col-summary"></span>
+      </div>
+      <div id="custom-status" role="status" aria-live="polite"></div>
+    </section>
+
+    <div id="app" class="hidden">
+      <!-- Hero -->
+      <section class="hero">
+        <h2>Feature Selection &amp; Parsimony Analysis</h2>
+        <p id="hero-text"></p>
+        <div class="badges" id="hero-badges"></div>
+      </section>
+
+      <!-- Controls -->
+      <section class="card">
+        <div class="section-label"><i class="fa-solid fa-sliders"></i> 1. Select Feature Selection Algorithm</div>
+        <div class="btn-group" id="method-buttons" role="group" aria-label="Feature selection algorithm"></div>
+        <div class="section-label" id="k-label"><i class="fa-solid fa-list-ol"></i> 2. Number of Features</div>
+        <div class="btn-group" id="k-buttons" role="group" aria-label="Number of features"></div>
+      </section>
+
+      <div class="notes" id="notes"></div>
+
+      <!-- Metrics -->
+      <section class="metrics" id="metrics"></section>
+
+      <section class="card predictors-strip" id="predictors-strip"></section>
+
+      <!-- Charts -->
+      <section class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <div><h2><i class="fa-solid fa-chart-line"></i>RMSE by Number of Features</h2><p id="rmse-sub">Lower is better.</p></div>
+            <span class="badge badge-indigo" id="rmse-badge"></span>
+          </div>
+          <div class="chart-box"><canvas id="rmse-chart" aria-label="Test RMSE by number of features"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div><h2><i class="fa-solid fa-arrow-trend-up"></i>R-squared by Number of Features</h2><p id="r2-sub">Higher is better.</p></div>
+            <span class="badge badge-green" id="r2-badge"></span>
+          </div>
+          <div class="chart-box"><canvas id="r2-chart" aria-label="Test R-squared by number of features"></canvas></div>
+        </div>
+      </section>
+
+      <!-- Equation -->
+      <section class="card equation-card">
+        <div class="section-label" id="equation-label"><i class="fa-solid fa-square-root-variable"></i> Fitted OLS Regression Equation</div>
+        <div class="equation" id="equation"></div>
+      </section>
+
+      <!-- Coefficients + predictor -->
+      <section class="grid-coef">
+        <div class="card">
+          <div class="card-head">
+            <div><h2><i class="fa-solid fa-table"></i>Model Coefficients &amp; Statistical Tests</h2><p id="coef-sub">Detailed parameter estimates, standard errors, t-statistics, and VIF multicollinearity.</p></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Predictor</th><th>Estimate (β)</th><th>Std. Error</th><th>t-Stat</th><th>P-Value</th><th>95% Conf. Int</th><th>VIF</th></tr></thead>
+              <tbody id="coef-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div><h2><i class="fa-solid fa-bolt"></i><span id="predictor-title">Live Predictor</span></h2><p>Test predictions in real-time with the active model.</p></div>
+            <span class="badge badge-green"><i class="fa-solid fa-bolt"></i> Real-time</span>
+          </div>
+          <div id="predictor-fields"></div>
+          <div class="prediction-card">
+            <div class="label" id="prediction-label">Predicted value</div>
+            <div class="value" id="prediction-value">–</div>
+            <div class="contrib" id="prediction-contrib"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Residuals -->
+      <section class="card">
+        <div class="card-head">
+          <div><h2><i class="fa-solid fa-magnifying-glass"></i>Test Set Residuals &amp; Outliers Diagnostic</h2><p id="resid-sub"></p></div>
+          <span class="badge badge-indigo"><i class="fa-solid fa-filter"></i> Sorted by |Residual|</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Rank</th><th>Sample ID</th><th id="th-actual">Actual</th><th id="th-pred">Predicted</th><th>Residual</th><th>Abs Error</th><th>% Error</th><th>Diagnostic Status</th></tr></thead>
+            <tbody id="resid-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div>
+        <h3><i class="fa-solid fa-building-columns"></i> <span id="footer-title">Multiple Linear Regression CRISP-DM Project</span></h3>
+        <p>Developed for multiple linear regression model selection, parsimony validation, and statistical inference. Built with pure Vanilla HTML, CSS, JavaScript, and Chart.js — all statistics are computed in the browser.</p>
+        <p><strong>CRISP-DM workflow:</strong></p>
+        <ol>
+          <li><strong>Business Understanding</strong> — predict the target and find the smallest model that does it well.</li>
+          <li><strong>Data Understanding</strong> — fetch the CSV, detect numeric / categorical columns, count rows &amp; missing values.</li>
+          <li><strong>Data Preparation</strong> — drop incomplete rows, one-hot encode categoricals (drop first), 80/20 split (seed 0).</li>
+          <li><strong>Modeling</strong> — Lasso, Forward SFS, RFE, ElasticNet and Exhaustive Search rank features; OLS refit for every k.</li>
+          <li><strong>Evaluation</strong> — test RMSE / R² / Adj. R² / MAE, F and t tests, 95% CI, VIF, residual diagnostics.</li>
+          <li><strong>Deployment</strong> — static website with a live predictor for the selected model.</li>
+        </ol>
+      </div>
+      <div>
+        <h4>References &amp; Acknowledgments</h4>
+        <div class="ref-box">
+          <p><strong>Design &amp; Layout Reference:</strong> Statistical calculator style inspired by <a id="footer-style-ref" target="_blank" rel="noopener">StatsUnlock Multiple Linear Regression Calculator</a> (featuring ANOVA, coefficients, VIF, and APA reporting aesthetics).</p>
+          <p><strong>Dataset:</strong> <span id="footer-dataset"></span></p>
+          <p><strong>Methodology:</strong> CRISP-DM (Cross-Industry Standard Process for Data Mining).</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="overlay hidden" id="overlay" aria-hidden="true">
+    <div class="spinner"></div>
+    <div class="overlay-text" id="overlay-text">Loading…</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="js/regression.js"></script>
+  <script src="js/csv.js"></script>
+  <script src="js/featureSelection.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

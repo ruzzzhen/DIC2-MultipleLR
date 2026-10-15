@@ -1,0 +1,14 @@
+# Reference screenshots / images stay local (not uploaded)
+reference/
+*.png
+*.jpg
+*.jpeg
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+__pycache__/
+
+# Test / verification scripts stay local
+tests/
